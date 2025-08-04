@@ -1,11 +1,11 @@
 import numpy as np
 
-delay_length = 5
-delay_buffer = np.zeros((delay_length, ))
+class Delay:
+    def __init__(self, delay_length):
+        self._delay_length = delay_length
+        self._delay_buffer = np.zeros((delay_length, ))
 
-def delay(x, y):
-    for i in range(len(x)):
-        y[i] = delay_buffer[delay_length - 1]
-        for j in range(delay_length - 1, 0 ,-1):
-            delay_buffer[j] = delay_buffer[j - 1]
-        delay_buffer[0] = x[i]
+    def process(self, x):
+        y = np.zeros_like(x)
+        y[0] = self._delay_buffer[self._delay_length - 1]
+        
