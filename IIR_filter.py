@@ -1,50 +1,53 @@
-## lowpass filter with cutoff frequency at 200Hz
-## at 48000Hz sampling rate
+
+
 
 import numpy as np
 
-def butter(cutoff_frequency_hz, sampling_rate, q, normalized=False):
-    """
-    Calculates the numerator and denominator coeffcients of the
-    2nd-order Butterworth lowpass
-    based on manual digitization via the bilinear transformation.
-    :param cutoff_frequency_hz: cutoff frequency of the filter in hertz
-    :param sampling_rate: sampling rate in hertz
-    :param q: the Q-factor of the filter
-    :param normalized: if True, then filter coefficients will be normalized by a0 so that a0 = 1.
-    :return: b, a numerator and denominator coefficients respectively of a digital transfer function
-    (see scipy.signal.butter for 'ba' output)
-    """
-    k = np.tan(np.pi * cutoff_frequency_hz / sampling_rate)
-    b0 = k ** 2
-    b1 = 2 * k ** 2
-    b2 = k ** 2
-    a0 = 1 + k / q + k ** 2
-    a1 = 2 * k ** 2 - 2
-    a2 = 1 - k / q + k ** 2
-    b = [b0, b1, b2]
-    a = [a0, a1, a2]
+class IIR_LP:
+    def __init__(self):
+        self._a = np.zeros(3)
+        self._b = np.zeros(3)
 
-    if normalized:
-        b /= a0
-        a /= a0
-    return b, a
+        self._s1 = 0.0
+        self._s2 = 0.0
+        
+        self._y = None
 
-# b = [0.00016822, 0.00033645, 0.00016822]
-# a = [1., -1.96298009, 0.96365298]
+    def process(self, x, cutoff, fs, q, normalized = True):
+        self._y = np.zeros_like(x)
+        k = np.tan(np.pi * cutoff / fs)
 
-b, a = butter(200, 48000, 1/np.sqrt(2), normalized = True)
+        # norm = 1 + q / k + k**2
+        a = np.array([1 + q / k + k**2,  2 * k ** 2 - 2,1 - k / q + k**2])
+        b = np.array([k**2, 2 * k**2, k**2])
 
-s_1 = 0
-s_2 = 0
+        if normalized:
+            b /= a[0]
+            a /= a[0]
 
-def IIR_filter(x, y):
+        self._a[:] = a
+        self._b[:] = b
+        
+        for i in range(len(x)):
+            y_0 = x[i] * b[0] + self._s1
+            self._s1 = x[i] * b[1] + self._s2 - a[1] * y_0
+            self._s2 = x[i] * b[2] - a[2] * y_0
+            self._y[i] = y_0
 
-    global s_1, s_2
+        return self._y
 
-    for i in range(len(x)):
-        y_0 = x[i] * b[0] + s_1
-        s_1 = x[i] * b[1] - y_0 * a[1] + s_2
-        s_2 = x[i] * b[2] - y_0 * a[2]
 
-        y[i] = y_0
+fs = 48000
+cutoff = 200
+q = 1 / np.sqrt(2)  # Butterworth Q
+
+
+
+lp = IIR_LP()
+x = np.random.randn(1024)
+y = lp.process(x, cutoff, fs, q, normalized=True)
+
+print(y[:10])  # 첫 10개 출력
+
+
+

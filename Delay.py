@@ -7,5 +7,10 @@ class Delay:
 
     def process(self, x):
         y = np.zeros_like(x)
-        y[0] = self._delay_buffer[self._delay_length - 1]
-        
+        for i in range(len(x)):
+            y[i] = self._delay_buffer[self._delay_length - 1]
+            for j in range(self._delay_length - 1, 0 , -1):
+                self._delay_buffer[j] = self._delay_buffer[j - 1]
+            self._delay_buffer[0] = x[i]
+        return y
+
